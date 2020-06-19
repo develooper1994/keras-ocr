@@ -50,6 +50,13 @@ for ax, image, predictions in zip(axs, images, prediction_groups):
 
 ![example of labeled image](https://raw.githubusercontent.com/faustomorales/keras-ocr/master/docs/_static/readme_labeled.jpg)
 
+### using licence_plate_recognition.py direct interface
+it is simple as that.
+```
+recognizer = recognize()
+prediction_groups = recognizer(images)
+plate_string = recognizer.get_plate_string(prediction_groups)
+```
 
 ## Comparing keras-ocr and other OCR approaches
 You may be wondering how the models in this package compare to existing cloud OCR APIs. We provide some metrics below and [the notebook](https://drive.google.com/file/d/1FMS3aUZnBU4Tc6bosBPnrjdMoSrjZXRp/view?usp=sharing) used to compute them using the first 1,000 images in the COCO-Text validation set. We limited it to 1,000 because the Google Cloud free tier is for 1,000 calls a month at the time of this writing. As always, caveats apply:
