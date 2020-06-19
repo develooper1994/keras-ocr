@@ -33,6 +33,12 @@ def sort_bounindg_boxes(prediction_groups):
 
 
 class recognize:
+    """
+    Usage;
+    recognizer = recognize()
+    prediction_groups = recognizer(images)
+    plate_string = recognizer.get_plate_string(prediction_groups)
+    """
     def __init__(self):
         self.pipeline = keras_ocr.pipeline.Pipeline()
 
