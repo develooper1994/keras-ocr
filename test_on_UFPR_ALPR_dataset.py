@@ -8,6 +8,7 @@ import cv2
 from matplotlib import pyplot as plt
 
 from keras_ocr.tools import read
+
 try:
     from . import licence_plate_recognition
 except:
@@ -62,18 +63,23 @@ class UFPR_parser:
                     assert False, "!!! Not supported !!!"
         return self.image_paths, self.image_metadata_txt_paths, self.image_metadata_xml_paths
 
-    def read_images(self, plates_and_positions=None, image_paths=None, crop_plate=True):
+    def read_images(self, plates_and_positions=None, image_paths=None, index_maximum=None, crop_plate=True):
         if image_paths is None:
             image_paths = self.image_paths
         if plates_and_positions is None:
             plates_and_positions = self.get_plates_and_positions()
-        for image_path, plate_and_position in zip(image_paths[:self.index_maximum], plates_and_positions[:self.index_maximum]):
+        if index_maximum is None:
+            index_maximum = self.index_maximum
+        for image_path, plate_and_position in zip(image_paths[:index_maximum], plates_and_positions[:index_maximum]):
             image = read(image_path)
             if crop_plate:
                 image = self.crop_plate_func(image, plate_and_position)
             self.images.append(image)
 
         return self.images  # np.stack(images)
+
+    def write_crop_plate_func(self, image, position_plate):
+        raise NotImplementedError
 
     def crop_plate_func(self, image, position_plate):
         # plate = position_plate[0]
@@ -99,12 +105,14 @@ class UFPR_parser:
             image_metadatas.append(image_metadata)
         return image_metadatas
 
-    def parse_metadata_txt(self, image_metadatas=None):
+    def parse_metadata_txt(self, index_maximum=None, image_metadatas=None):
         if image_metadatas is None:
             image_metadatas = self.read_metadata()
+        if index_maximum is None:
+            index_maximum = self.index_maximum
         all_info = {}
         all_info_list = []
-        for image_metadata in image_metadatas[:self.index_maximum]:
+        for image_metadata in image_metadatas[:index_maximum]:
             # headlines
             camera = image_metadata[0].split(':')[-1][1:-1]
             position_vehicle = image_metadata[1].split(':')[-1][1:-2]
@@ -143,18 +151,41 @@ class UFPR_parser:
             plates_and_position.append([plate, position_plate])
         return plates_and_position
 
-    def get_predictions(self, images=None):
+    def get_predictions(self, images=None, enhance=True):
         if images is None:
             images = self.images
-        prediction_groups = self.recognizer(images)
-        plate_strings = self.recognizer.get_plate_string(prediction_groups)
+        if enhance:
+            images = self.recognizer.superresolution(images)  # 'MLS-5511'
+            # images = self.recognizer.superresolution(images)  # second time is not good.
+
+        plate_strings = []
+        for image in images:
+            prediction_group = self.recognizer([image])
+            plate_string = self.recognizer.get_plate_string(prediction_group)
+            plate_strings.append(plate_string)
 
         return plate_strings
+
+    def get_accuracy(self, plates_and_positions=None, predictions=None, images=None, enhance=True):
+        if plates_and_positions is None:
+            plates_and_positions = self.get_plates_and_positions()
+        # plate = plates_and_position["plate"]
+        if predictions is None:
+            predictions = self.get_predictions(images=images, enhance=enhance)
+
+        correct = 0
+        for prediction, plates_and_position in zip(predictions, plates_and_positions):
+            plate = "".join(plates_and_position[0].lower().split("-"))
+            if prediction == plate:
+                correct += 1
+        accuracy = (correct / len(self.images)) * 100
+        return accuracy
 
 
 if __name__ == "__main__":
     data_path = "../UFPR-ALPR dataset/"
-    parser = UFPR_parser(data_path=data_path, index_maximum=5)
-    print(parser[0])
-    plate_strings = parser.get_predictions()
-
+    index_maximum = 5
+    parser = UFPR_parser(data_path=data_path)  # , index_maximum=index_maximum
+    # print(parser[0])
+    accuracy = parser.get_accuracy()
+    print(f"accuracy: {accuracy}%")
