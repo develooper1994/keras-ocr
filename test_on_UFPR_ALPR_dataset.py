@@ -15,29 +15,13 @@ except:
     import licence_plate_recognition
 
 
-class UFPR_parser:
-    def __init__(self, data_path, index_maximum=None, crop_plate=True):
-        # paths
+# class UFPR_ALPR_dataset:
+class UFPR_ALPR_dataset:
+    def __init__(self):
         self.data_path = data_path
-        self.image_paths = []
-        self.image_metadata_txt_paths = []
-        self.image_metadata_xml_paths = []
-        self.image_paths, self.image_metadata_txt_paths, self.image_metadata_xml_paths = self.get_file_paths()
-
-        self.index_maximum = index_maximum
-        if index_maximum is None:
-            self.index_maximum = len(self.image_paths)
-
-        # metadata
-        self.parsed_metadatas = []
+        self.index_maximum = len(self.image_paths)
         self.parsed_metadatas = self.parse_metadata_txt()
-
-        self.images = []
         self.images = self.read_images(crop_plate=crop_plate)
-
-        self.recognizer = licence_plate_recognition.recognize()
-        # prediction_groups = self.recognizer(images)
-        # plate_string = self.recognizer.get_plate_string(prediction_groups)
 
     def __getitem__(self, item):
         assert not item > len(self.images), "!!! index access exceeded !!!"
@@ -151,6 +135,29 @@ class UFPR_parser:
             plates_and_position.append([plate, position_plate])
         return plates_and_position
 
+
+class UFPR_test(UFPR_ALPR_dataset):
+    def __init__(self, data_path, index_maximum=None, crop_plate=True):
+        # paths
+        super().__init__()
+        self.image_paths = []
+        self.image_metadata_txt_paths = []
+        self.image_metadata_xml_paths = []
+        self.image_paths, self.image_metadata_txt_paths, self.image_metadata_xml_paths = self.get_file_paths()
+
+        self.index_maximum = index_maximum
+        if index_maximum is None:
+            pass
+
+        # metadata
+        self.parsed_metadatas = []
+
+        self.images = []
+
+        self.recognizer = licence_plate_recognition.recognize()
+        # prediction_groups = self.recognizer(images)
+        # plate_string = self.recognizer.get_plate_string(prediction_groups)
+
     def get_predictions(self, images=None, enhance=True):
         if images is None:
             images = self.images
@@ -185,7 +192,7 @@ class UFPR_parser:
 if __name__ == "__main__":
     data_path = "../UFPR-ALPR dataset/"
     index_maximum = 5
-    parser = UFPR_parser(data_path=data_path)  # , index_maximum=index_maximum
+    parser = UFPR_test(data_path=data_path)  # , index_maximum=index_maximum
     # print(parser[0])
     accuracy = parser.get_accuracy()
     print(f"accuracy: {accuracy}%")
